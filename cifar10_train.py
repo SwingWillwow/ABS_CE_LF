@@ -9,14 +9,14 @@ import numpy as np
 FLAGS = tf.app.flags.FLAGS
 low_ranks = []
 
-for i in range(5):
+for i in range(1, 5):
     r = int(input('rank for %d layer' % i))
     low_ranks.append(r)
 
 # sparsity = float(input('how many percent element stay in sparse part?'))
 
 modelNumber = str(input('model number?'))
-
+print(cifar10.RATE_OF_EC)
 # define  global information
 tf.app.flags.DEFINE_string('train_dir', 'cifar10_train/ABS/'+modelNumber,
                            """Directory where to write event logs """

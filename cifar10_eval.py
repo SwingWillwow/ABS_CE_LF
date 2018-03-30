@@ -9,14 +9,16 @@ import cifar10
 
 FLAGS = tf.app.flags.FLAGS
 
-# low_ranks = []
+low_ranks = []
 
-# for i in range(5):
-#     r = int(input('rank for %d layer' % i))
-#     low_ranks.append(r)
+for i in range(1, 5):
+    r = int(input('rank for %d layer' % i))
+    low_ranks.append(r)
 # sparsity = float(input('how many percent element stay in sparse part?'))
 
 modelNumber = str(input('model number?'))
+
+eval_time = int(input('eval time?'))
 tf.app.flags.DEFINE_string('eval_dir', 'cifar10_eval/ABS/' + modelNumber,
                            """Directory where to write event logs.""")
 tf.app.flags.DEFINE_string('eval_data', 'test',
@@ -90,24 +92,26 @@ def evaluate():
         eval_data = FLAGS.eval_data == 'test'
         images, labels = cifar10.inputs(eval_data)
 
-        logits = cifar10.inference(images)
+        logits = cifar10.inference(images,r=low_ranks)
         # top_k_op = tf.nn.in_top_k(logits, labels, 1)
         predict = tf.equal(tf.argmax(logits, axis=1, output_type=tf.int32), labels)
         truth_num = tf.reduce_sum(tf.cast(predict, tf.int32))
-        variable_averages = tf.train.ExponentialMovingAverage(
-            cifar10.MOVING_AVERAGE_DECAY)
-        variables_to_restore = variable_averages.variables_to_restore()
-        print(variables_to_restore)
-        saver = tf.train.Saver(variables_to_restore)
-        # saver = tf.train.Saver()
+        # variable_averages = tf.train.ExponentialMovingAverage(
+        #     cifar10.MOVING_AVERAGE_DECAY)
+        # variables_to_restore = variable_averages.variables_to_restore()
+        # print(variables_to_restore)
+        # saver = tf.train.Saver(variables_to_restore)
+        saver = tf.train.Saver()
         summary_op = tf.summary.merge_all()
         summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, g)
 
-        while True:
+        # while True:
+        #     eval_once(saver, summary_writer, truth_num, summary_op, logits)
+        #     if FLAGS.run_once:
+        #         break
+        #     time.sleep(FLAGS.eval_interval_secs)
+        for i in range(eval_time):
             eval_once(saver, summary_writer, truth_num, summary_op, logits)
-            if FLAGS.run_once:
-                break
-            time.sleep(FLAGS.eval_interval_secs)
 
 
 def main(argv=None):

@@ -35,7 +35,7 @@ NUM_EPOCH_PER_DECAY = 350.0       # EPOCH after which learning rate decay
 LEARNING_RATE_DECAY_FACTOR = 0.1  # learning rate decay factor
 INITIAL_LEARNING_RATE = 0.1       # initial learning rate
 MAX_STEPS = 1000000               # max step to train, ensure that last model was sparsity
-
+RATE_OF_EC = 0.9                  # the rate of epoch clean
 
 # prefix for multiple GPUs training
 TOWER_NAME = 'tower'
@@ -92,7 +92,7 @@ def _get_low_rank_conv(input_feature_map, shape, rank, scope=None):
         shape=[1, 1, rank, out_channel],
         stddev=5e-2,
         wd=None)
-    biases = _variable_on_cpu('biases', [out_channel], initializer=tf.constant_initializer(0.0))
+    biases = _variable_on_cpu('biases', [out_channel], initializer=tf.constant_initializer(0.1))
     s = _variable_with_weight_decay(
         name='sparse_part',
         shape=[h, w, in_channel, out_channel],
@@ -120,7 +120,7 @@ def _get_low_rank_dense_layer(input_feature_map, shape, rank, scope, is_logit):
                                                     shape=[rank, n],
                                                     stddev=0.04,
                                                     wd=0.001)
-    biases = _variable_on_cpu('biases', [n], initializer=tf.constant_initializer(0.0))
+    biases = _variable_on_cpu('biases', [n], initializer=tf.constant_initializer(0.1))
     s = _variable_with_weight_decay(name='sparse_part',
                                     shape=[m, n],
                                     stddev=0.04,
@@ -220,7 +220,7 @@ def inference(images, r):
         conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
         bias = _variable_on_cpu('biases',
                                 [64],
-                                tf.constant_initializer(0.0))
+                                tf.constant_initializer(0.1))
         pre_activation = tf.nn.bias_add(conv, bias)
         conv1 = tf.nn.relu(pre_activation, name=scope.name)
         # summary conv1's activations information
@@ -276,7 +276,7 @@ def inference(images, r):
     # simple linear layer y = Wx + b without non-linearity Relu
     with tf.variable_scope('logit') as scope:
         # logit = _get_low_rank_dense_layer(local4, [192, NUM_CLASSES], r[4], scope)
-        logit = _get_low_rank_dense_layer(local4, [192, NUM_CLASSES], r[3], scope, False)
+        logit = _get_low_rank_dense_layer(local4, [192, NUM_CLASSES], r[3], scope, True)
         _activation_summary(logit)
     return logit
 
@@ -365,7 +365,7 @@ def train(total_loss, global_step):
                                                                             dtype=tf.int64)),
                                                          tf.constant(0, dtype=tf.int64)),
                                                 tf.greater_equal(global_step,
-                                                                 tf.constant(int(MAX_STEPS*0.99),
+                                                                 tf.constant(int(MAX_STEPS * RATE_OF_EC),
                                                                              tf.int64))),
                              true_fn=lambda: clean_fn(),
                              false_fn=lambda: [tf.no_op() for c in tf.get_collection('sparse_components')])
